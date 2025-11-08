@@ -11,13 +11,18 @@ import { generatePDFBill } from "@/lib/bill-generator"
 export function SuccessPage() {
   const { items, total } = useCart()
   const [mounted, setMounted] = useState(false)
-  const [phone] = useState(() => sessionStorage.getItem("userPhone") || "")
+  const [phone, setPhone] = useState("")
   const [billId] = useState(`BILL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`)
-  const [paymentMethod] = useState(() => sessionStorage.getItem("paymentMethod") || "Unknown")
-  const [transactionId] = useState(() => sessionStorage.getItem("transactionId") || "TXN-000000000000")
+  const [paymentMethod, setPaymentMethod] = useState("Unknown")
+  const [transactionId, setTransactionId] = useState("TXN-000000000000")
 
   useEffect(() => {
     setMounted(true)
+    if (typeof window !== "undefined") {
+      setPhone(sessionStorage.getItem("userPhone") || "")
+      setPaymentMethod(sessionStorage.getItem("paymentMethod") || "Unknown")
+      setTransactionId(sessionStorage.getItem("transactionId") || "TXN-000000000000")
+    }
   }, [])
 
   if (!mounted) return null
