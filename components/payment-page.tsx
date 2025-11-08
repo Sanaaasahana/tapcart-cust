@@ -55,8 +55,10 @@ export function PaymentPage({ onSuccess, onBack }: PaymentPageProps) {
     setError("")
     setIsProcessing(true)
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`
-    sessionStorage.setItem("transactionId", transactionId)
-    sessionStorage.setItem("paymentMethod", "Credit/Debit Card")
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("transactionId", transactionId)
+      sessionStorage.setItem("paymentMethod", "Credit/Debit Card")
+    }
 
     // Simulate card payment processing
     setTimeout(() => {
@@ -74,8 +76,10 @@ export function PaymentPage({ onSuccess, onBack }: PaymentPageProps) {
       const response = await initiateUPIPayment(upiId, finalTotal, "Checkout Payment")
 
       if (response.success) {
-        sessionStorage.setItem("transactionId", response.transactionId)
-        sessionStorage.setItem("paymentMethod", "UPI")
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("transactionId", response.transactionId)
+          sessionStorage.setItem("paymentMethod", "UPI")
+        }
         console.log("[v0] UPI Payment successful:", response.transactionId)
         clearCart()
         setTimeout(() => {
@@ -96,8 +100,10 @@ export function PaymentPage({ onSuccess, onBack }: PaymentPageProps) {
     setError("")
     setIsProcessing(true)
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`
-    sessionStorage.setItem("transactionId", transactionId)
-    sessionStorage.setItem("paymentMethod", "Pay at Counter")
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("transactionId", transactionId)
+      sessionStorage.setItem("paymentMethod", "Pay at Counter")
+    }
 
     // Simulate counter payment processing
     setTimeout(() => {
