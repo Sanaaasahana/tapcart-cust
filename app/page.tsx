@@ -5,50 +5,78 @@ import { CartPage } from "@/components/cart-page"
 import { CheckoutPage } from "@/components/checkout-page"
 import { PaymentPage } from "@/components/payment-page"
 import { SuccessPage } from "@/components/success-page"
-import { CartProvider } from "@/lib/cart-context"
+import { CartProvider, useCart } from "@/lib/cart-context"
 
 type PageState = "cart" | "checkout" | "payment" | "success"
 
-export default function Home() {
+function HomeContent() {
   const [currentPage, setCurrentPage] = useState<PageState>("cart")
-  const [isLoading, setIsLoading] = useState(true)
+  const { addItemFromStore } = useCart()
 
   useEffect(() => {
-    setIsLoading(false)
+    // Handle NFC product additions from URL
+    // Format: productID/storeID/cart.com or ?productId=XXX&storeId=YYY
+    const handleNFCURL = async () => {
+      // Check URL params first
+      const params = new URLSearchParams(window.location.search)
+      let productId = params.get("productId")
+      let storeId = params.get("storeId")
 
-    // Handle NFC product additions from URL params
-    const params = new URLSearchParams(window.location.search)
-    const productId = params.get("productId")
-    const storeId = params.get("storeId")
+      // If not in params, check pathname format: productID/storeID/cart.com
+      if (!productId || !storeId) {
+        const pathname = window.location.pathname
+        // Try to parse pathname like /PROD001/STORE001/cart.com
+        const pathParts = pathname.split("/").filter(Boolean)
+        if (pathParts.length >= 2) {
+          // Check if last part contains "cart"
+          const lastPart = pathParts[pathParts.length - 1]
+          if (lastPart.includes("cart")) {
+            productId = pathParts[pathParts.length - 2]
+            storeId = pathParts[pathParts.length - 3]
+          } else {
+            productId = pathParts[pathParts.length - 1]
+            storeId = pathParts[pathParts.length - 2]
+          }
+        }
+      }
 
-    if (productId && storeId) {
-      // Product will be added via context
-      window.history.replaceState({}, document.title, window.location.pathname)
+      if (productId && storeId) {
+        try {
+          await addItemFromStore(productId, storeId)
+          // Navigate to cart page
+          setCurrentPage("cart")
+          // Clean up URL
+          window.history.replaceState({}, document.title, "/")
+        } catch (error) {
+          console.error("Failed to add product from NFC:", error)
+          // Still navigate to cart, but show error
+          setCurrentPage("cart")
+          window.history.replaceState({}, document.title, "/")
+        }
+      }
     }
-  }, [])
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse-ring">
-          <div className="w-12 h-12 rounded-full border-2 border-accent border-t-transparent"></div>
-        </div>
-      </div>
-    )
-  }
+    handleNFCURL()
+  }, [addItemFromStore])
 
   return (
+    <main className="min-h-screen bg-background">
+      {currentPage === "cart" && <CartPage onCheckout={() => setCurrentPage("checkout")} />}
+      {currentPage === "checkout" && (
+        <CheckoutPage onProceed={() => setCurrentPage("payment")} onBack={() => setCurrentPage("cart")} />
+      )}
+      {currentPage === "payment" && (
+        <PaymentPage onSuccess={() => setCurrentPage("success")} onBack={() => setCurrentPage("checkout")} />
+      )}
+      {currentPage === "success" && <SuccessPage />}
+    </main>
+  )
+}
+
+export default function Home() {
+  return (
     <CartProvider>
-      <main className="min-h-screen bg-background">
-        {currentPage === "cart" && <CartPage onCheckout={() => setCurrentPage("checkout")} />}
-        {currentPage === "checkout" && (
-          <CheckoutPage onProceed={() => setCurrentPage("payment")} onBack={() => setCurrentPage("cart")} />
-        )}
-        {currentPage === "payment" && (
-          <PaymentPage onSuccess={() => setCurrentPage("success")} onBack={() => setCurrentPage("checkout")} />
-        )}
-        {currentPage === "success" && <SuccessPage />}
-      </main>
+      <HomeContent />
     </CartProvider>
   )
 }
