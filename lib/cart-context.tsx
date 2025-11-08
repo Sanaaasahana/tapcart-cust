@@ -26,6 +26,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load cart from localStorage
   useEffect(() => {
+    if (typeof window === "undefined") return
+
     const saved = localStorage.getItem("cart")
     if (saved) {
       try {
@@ -55,7 +57,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = (product: CartProduct) => {
     setItems((prev) => {
       const newItems = [...prev, product]
-      localStorage.setItem("cart", JSON.stringify(newItems))
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cart", JSON.stringify(newItems))
+      }
       calculateTotal(newItems)
       return newItems
     })
@@ -64,7 +68,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeItem = (productId: string) => {
     setItems((prev) => {
       const newItems = prev.filter((item) => item.id !== productId)
-      localStorage.setItem("cart", JSON.stringify(newItems))
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cart", JSON.stringify(newItems))
+      }
       calculateTotal(newItems)
       return newItems
     })
@@ -73,7 +79,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = () => {
     setItems([])
     setTotal(0)
-    localStorage.removeItem("cart")
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cart")
+    }
   }
 
   return (
