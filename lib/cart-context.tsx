@@ -1,9 +1,12 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { fetchProductByCustomId } from "./store-api"
+import type { StoreProduct } from "./store-api"
 
 export interface CartProduct {
   id: string
+  customId: string
   name: string
   price: number
   image: string
@@ -13,9 +16,12 @@ export interface CartProduct {
 interface CartContextType {
   items: CartProduct[]
   addItem: (product: CartProduct) => void
+  addItemFromStore: (customId: string, storeId: string) => Promise<void>
   removeItem: (productId: string) => void
   clearCart: () => void
   total: number
+  isLoading: boolean
+  error: string | null
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -23,6 +29,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartProduct[]>([])
   const [total, setTotal] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Load cart from localStorage
   useEffect(() => {
@@ -65,6 +73,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  const addItemFromStore = async (customId: string, storeId: string) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const storeProduct: StoreProduct = await fetchProductByCustomId(customId, storeId)
+      
+      const cartProduct: CartProduct = {
+        id: storeProduct.id,
+        customId: storeProduct.id,
+        name: storeProduct.name,
+        price: storeProduct.price,
+        image: storeProduct.image,
+        storeId: storeProduct.storeId,
+      }
+      
+      addItem(cartProduct)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to add product to cart"
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const removeItem = (productId: string) => {
     setItems((prev) => {
       const newItems = prev.filter((item) => item.id !== productId)
@@ -85,7 +118,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, total }}>{children}</CartContext.Provider>
+    <CartContext.Provider value={{ items, addItem, addItemFromStore, removeItem, clearCart, total, isLoading, error }}>
+      {children}
+    </CartContext.Provider>
   )
 }
 
