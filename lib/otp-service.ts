@@ -1,59 +1,57 @@
-interface OTPStore {
-  [key: string]: {
-    otp: string
-    timestamp: number
-    attempts: number
+// OTP service using API routes
+export async function generateOTP(phone: string): Promise<string> {
+  try {
+    const response = await fetch("/api/otp/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ phone }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Failed to send OTP" }))
+      throw new Error(error.error || "Failed to send OTP")
+    }
+
+    const data = await response.json()
+    
+    // In development, return OTP for testing (remove in production)
+    if (data.otp) {
+      return data.otp
+    }
+
+    // In production, OTP is sent via SMS and not returned
+    return ""
+  } catch (error) {
+    console.error("OTP generation error:", error)
+    throw error
   }
 }
 
-const otpStore: OTPStore = {}
-const OTP_VALIDITY = 5 * 60 * 1000 // 5 minutes
-const MAX_ATTEMPTS = 5
+export async function verifyOTP(phone: string, inputOTP: string): Promise<boolean> {
+  try {
+    const response = await fetch("/api/otp/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ phone, otp: inputOTP }),
+    })
 
-export function generateOTP(phone: string): string {
-  const otp = Math.floor(1000 + Math.random() * 9000).toString()
-  const timestamp = Date.now()
+    if (!response.ok) {
+      return false
+    }
 
-  otpStore[phone] = {
-    otp,
-    timestamp,
-    attempts: 0,
-  }
-
-  // Log for demo purposes
-  console.log(`[Demo OTP for ${phone}]: ${otp}`)
-
-  return otp
-}
-
-export function verifyOTP(phone: string, inputOTP: string): boolean {
-  const stored = otpStore[phone]
-
-  if (!stored) {
+    const data = await response.json()
+    return data.success === true
+  } catch (error) {
+    console.error("OTP verification error:", error)
     return false
   }
-
-  const isExpired = Date.now() - stored.timestamp > OTP_VALIDITY
-  if (isExpired) {
-    delete otpStore[phone]
-    return false
-  }
-
-  if (stored.attempts >= MAX_ATTEMPTS) {
-    delete otpStore[phone]
-    return false
-  }
-
-  stored.attempts++
-
-  if (stored.otp === inputOTP) {
-    delete otpStore[phone]
-    return true
-  }
-
-  return false
 }
 
 export function clearOTP(phone: string): void {
-  delete otpStore[phone]
+  // OTP is cleared on the server side after verification
+  // This is kept for backward compatibility
 }
