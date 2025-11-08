@@ -45,7 +45,9 @@ export function CheckoutPage({ onProceed, onBack }: CheckoutPageProps) {
       setIsLoading(false)
       setOtpAttempts(0)
       // Store phone for later use
-      sessionStorage.setItem("userPhone", phone)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("userPhone", phone)
+      }
     }, 1500)
   }
 
